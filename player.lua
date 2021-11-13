@@ -13,7 +13,9 @@ require("particlesystem")
 Player = {}
 Player.__index = Player
 
--- Creates a new player
+--- Creates a new player
+---@param world any @The world the player is in
+---@param playerImg any @The SpriteSheet of the player
 function Player:load(world, playerImg)
   --Set the players location
   self.x = 300
@@ -58,7 +60,7 @@ function Player:load(world, playerImg)
   self.physics.body = love.physics.newBody(world, self.x, self.y, "dynamic")
   self.physics.body:setFixedRotation(true)
   self.physics.body:setMass(60)
-  self.physics.shape = love.physics.newRectangleShape(self.width - 12, self.height)
+  self.physics.shape = love.physics.newRectangleShape(self.width - 12, self.height - 6)
   self.physics.fixture = love.physics.newFixture(self.physics.body, self.physics.shape)
 
   --Set the player to be not dead
@@ -102,7 +104,8 @@ function Player:load(world, playerImg)
                     })
 end
 
---Updates the player
+--- Updates the player
+---@param dt any @The delta time
 function Player:update(dt)
   if self.y > love.graphics.getHeight()/2 and not self.dead then
     Faderect = FadeRect.new(800, 600, {0,0,0}, 0.3, "inOut", 
@@ -144,7 +147,8 @@ function Player:updateAnimationState()
   end
 end
 
---Applies gravity to the player
+--- Applies gravity to the player
+---@param dt any @The delta time
 function Player:applyGravity(dt)
   if self.grounded then return end
   if self.yVel < (self.maxSpeed + 20) then
@@ -157,6 +161,7 @@ function Player:applyGravity(dt)
 end
 
 --Handles input and movement
+---@param dt any @The delta time
 function Player:move(dt)
   local inAirMult = 1
   if not self.grounded then
@@ -198,6 +203,7 @@ function Player:move(dt)
 end
 
 --Applies friction to the player
+---@param dt any @The delta time
 function Player:applyFriction(dt)
   if self.xVel > 0 then
     if self.xVel - self.friction * dt > 0 then
@@ -213,34 +219,46 @@ function Player:applyFriction(dt)
     end
   end
 end
-  
+
 --Collision callback for checking if the player is on the ground
+---@param a any @The first object
+---@param b any @The second object
+---@param collision any @The collision data
 function Player:beginContact(a, b, collision)
-  if self.grounded then return end
-  local nx, ny = collision:getNormal()
+  local nx, ny = collision:getNormal() 
   if a == self.physics.fixture then
     if ny > 0 then
+      if not self.grounded then
       self:land(collision)
+      end
+      table.insert(self.currentGroundCollisions, collision)
     end
   elseif b == self.physics.fixture then
     if ny < 0 then
-      self:land(collision)
+      if not self.grounded then
+        self:land(collision)
+      end
+      table.insert(self.currentGroundCollisions, collision)
     end
   end
   
 end
 
 --Called when the player becomes grounded
+---@param collision any @The collision data
 function Player:land(collision)
   self.yVel = 0
   self.jumpSFX:stop()
   self.landSFX:play()
   self.grounded = true
   self.groundCollisionNumber = self.groundCollisionNumber + 1
-  table.insert(self.currentGroundCollisions, collision)
+  
 end
 
 --Callback for when the player is no longer grounded
+---@param a any @The first object
+---@param b any @The second object
+---@param collision any @The collision data
 function Player:endContact(a, b, collision)
   if a == self.physics.fixture or b == self.physics.fixture then
     for i = 1, #self.currentGroundCollisions do
@@ -267,12 +285,13 @@ function Player:syncPhysics()
 --Draws the player
 function Player:draw()
   self.particles:draw()
-  self.currAnim:draw(self.img, self.x - ((self.width / 2) * self.flipscale), self.y - self.height / 2, 0, self.flipscale / 2, 1 / 2)
+  self.currAnim:draw(self.img, self.x - ((self.width / 2) * self.flipscale), self.y - (self.height / 2) - 3, 0, self.flipscale / 2, 1 / 2)
   --love.graphics.print(#self.currentGroundCollisions, 10, 10)
   
   
 end
 
+--- Returns the player's fixture
 function Player:getFixture()
   return self.physics.fixture
 end

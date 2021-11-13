@@ -13,7 +13,13 @@
 Menu = {}
 Menu.__index = Menu
 
---Uses factory pattern to create a menu from provided options
+--- Creates a new menu using Factory Pattern
+---@param originX number @The x position of the menu
+---@param originY number @The y position of the menu
+---@param width number @The width of the menu
+---@param height number @The height of the menu
+---@param title string @The title of the menu
+---@param options table @The options table
 function Menu.build(originX, originY, width, height, title, options)
     local self = setmetatable({}, Menu)
     self.originX = originX
@@ -34,7 +40,8 @@ function Menu.build(originX, originY, width, height, title, options)
     return self
 end
 
---Updates the Menu
+--- Updates the menu
+---@param dt any @The delta time
 function Menu:update(dt)
     for i, button in ipairs(self.buttons) do
         button:update(dt)
@@ -59,7 +66,16 @@ end
 
 Button = {}
 Button.__index = Button
---Creates a new button
+--- Creates a new button
+---@param originX any @The x position of the button
+---@param originY any @The y position of the button
+---@param width any @The width of the button
+---@param height any @The height of the button
+---@param text any @The text of the button
+---@param callback any @The callback function the button activates
+---@param color any @The color of the button
+---@param selectedColor any @The color of the button when selected
+---@param textColor any @The color of the text of the button
 function Button.new(originX, originY, width, height, text, callback, color, selectedColor, textColor)
     local self = setmetatable({}, Button)
     self.originX = originX
@@ -90,7 +106,8 @@ function Button:draw()
     love.graphics.setColor(255, 255, 255, 255)
 end
 
---//Check if the mouse is over the button, if so, set the button to be selected, the mouse is pressed and the button has a callback, call the callback
+--- Updates the button
+---@param dt any @The delta time
 function Button:update(dt) 
     if self.originX < love.mouse.getX() and self.originX + self.width > love.mouse.getX() and self.originY < love.mouse.getY() and self.originY + self.height > love.mouse.getY() then
         self.selected = true

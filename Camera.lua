@@ -35,6 +35,7 @@ function Camera:unset()
 end
 
 --Draws the camera's view
+---@param mode string @The drawing mode to use
 function Camera:draw(mode)
     local bx, by = self.x, self.y
     for _, v in ipairs(self.layers) do
@@ -55,12 +56,18 @@ function Camera:draw(mode)
 end
 
 --Translates the camera
+---@param x number @The x-coordinate to translate the camera by
+---@param y number @The y-coordinate to translate the camera by
 function Camera:setPosition(x, y) --x and y are the coordinates of the camera
     self.x = x or self.x
     self.y = y or self.y
 end
 
 --Creates a new layer
+---@param order number @The order of the layer
+---@param scale number @The scale of the layer
+---@param func function @The function to call when drawing the layer
+---@param fg boolean @Whether the layer is a foreground layer
 function Camera:newLayer(order, scale, func, fg) -- order: the order of the layer, scale: the parallax scalar, func: the function to draw the layer
     local newLayer = {draw = func, scale = scale, order = order, foreground = fg or false}
     table.insert(self.layers, newLayer)

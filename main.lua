@@ -24,10 +24,16 @@ local myCamera = Camera()
 local bgm
 local testparticle
 local mainMenu, gameOverMenu
-local currentLevel
+
+--Global variables storing game state data
+CurrentLevel = nil
 Gamestate = "mainmenu"
+
+--Post processing variables
 Faderect = nil
 RenderTexture = nil
+
+--Shader for Water Effect
 WaterShader = love.graphics.newShader[[
   extern number time;
   
@@ -59,24 +65,40 @@ WaterShader = love.graphics.newShader[[
   }
 ]]
 
+--Shader for Vignette Effect
+VignetteShader = love.graphics.newShader[[
+  
+  
+  vec4 effect( vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords ){
+    
+    
+    float d = length((screen_coords) - vec2(400, 600));
+    
 
-local levels = {"Level1.lua"}
-local levelindex = 1
+    vec4 pixel = vec4(Texel(texture, texture_coords).rgb - pow(d * 0.0008, 3), Texel(texture, texture_coords).a);
+    
+    return pixel;
+  }
+]]
+
+--Keeps track of Levels
+Levels = {"Level1.lua", "Level2.lua"}
+LevelIndex = 1
 
 
 --Loads the game
 function love.load()
-    love.graphics.setFont(love.graphics.newFont("assets/fonts/GothicPixels.ttf", 20))
-    love.graphics.setBackgroundColor(0.1, 0.1, 0.15)
-    RenderTexture = love.graphics.newCanvas(love.graphics.getWidth(), love.graphics.getHeight()-100)
-    --Create the Main Menu
-    mainMenu = Menu.build(200, 100, 400, 200, "Cavern", {
+    love.graphics.setFont(love.graphics.newFont("assets/fonts/GothicPixels.ttf", 20)) --Set the font
+    love.graphics.setBackgroundColor(0.1, 0.1, 0.15) --Set the background color
+    RenderTexture = love.graphics.newCanvas(love.graphics.getWidth(), love.graphics.getHeight()-100) --Create a new canvas for post processing
+    --Create the Main Menu using Menu Factory
+    mainMenu = Menu.build(200, 100, 400, 200, "Cavern", { 
         {
             name = "Play",
             action = function() --Callback to fade into the first level
               Faderect = FadeRect.new(800, 600, {0,0,0}, 1, "inOut", 
               function()
-                currentLevel = Level.load("Level1.lua")
+                CurrentLevel = Level.load(Levels[LevelIndex])
                 Gamestate = "playing"
               end)
             end,
@@ -102,7 +124,7 @@ function love.load()
             action = function() --Callback to fade into the level being retried
               Faderect = FadeRect.new(800, 600, {0,0,0}, 1, "inOut", 
               function()
-                currentLevel = Level.load(levels[levelindex])
+                CurrentLevel = Level.load(Levels[LevelIndex]) --Load the level
                 Gamestate = "playing"
               end)
             end,
@@ -121,17 +143,18 @@ function love.load()
         }
     })
   
-  if arg[#arg] == "-debug" then require("mobdebug").start() end
+  if arg[#arg] == "-debug" then require("mobdebug").start() end --Load the debug library if in debug mode
 end
 
---Love2D callback to update the game
+--- Updates the game
+---@param dt any The time passed since the last update
 function love.update(dt)
-  if Gamestate ~= "playing" and currentLevel ~= nil then --If the game is not playing then clean up any level data
-    currentLevel.bgm:stop()
-    currentLevel = nil 
+  if Gamestate ~= "playing" and CurrentLevel ~= nil then --If the game is not playing then clean up any level data
+    CurrentLevel.bgm:stop()
+    CurrentLevel = nil 
   end
-  if currentLevel ~= nil then --If there is a level then update it
-    currentLevel:update(dt)
+  if CurrentLevel ~= nil then --If there is a level then update it
+    CurrentLevel:update(dt)
   elseif Gamestate == "mainmenu" then --Otherwise, update the main menu if in the mainmenu state
     mainMenu:update(dt)
   elseif  Gamestate == "gameover" then --Otherwise, update the game over menu if in the gameover state
@@ -147,8 +170,8 @@ end
 
 --Love2D callback to draw
 function love.draw()
-  if currentLevel ~= nil then --If there is a level then draw it
-    currentLevel:draw()
+  if CurrentLevel ~= nil then --If there is a level then draw it
+    CurrentLevel:draw()
   elseif Gamestate == "mainmenu" then --Otherwise, draw the main menu if in the mainmenu state
     mainMenu:draw()
   elseif  Gamestate == "gameover" then --Otherwise, draw the game over menu if in the gameover state
@@ -159,19 +182,26 @@ function love.draw()
   end
 end
 
+--- Love2D callback to handle collision
+---@param a any @The first object
+---@param b any @The second object
+---@param collision any @The collision data
 function beginContact(a, b, collision) --Callback for when two objects collide
   --Player:beginContact(a, b, collision)
-  if currentLevel ~= nil then
-    currentLevel:beginContact(a, b, collision)
+  if CurrentLevel ~= nil then
+    CurrentLevel:beginContact(a, b, collision)
   end
   
 end
 
-
+--- Love2D callback to handle collision
+---@param a any @The first object
+---@param b any @The second object
+---@param collision any @The collision data
 function endContact(a, b, collision) --Callback for when two objects stop colliding
   --Player:endContact(a, b, collision)
-  if currentLevel ~= nil then
-    currentLevel:endContact(a, b, collision)
+  if CurrentLevel ~= nil then
+    CurrentLevel:endContact(a, b, collision)
   end
   
 end

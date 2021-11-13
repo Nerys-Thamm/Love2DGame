@@ -13,7 +13,13 @@
 FadeRect = {}
 FadeRect.__index = FadeRect
 
--- This function constructs a FadeRect with a specified color, fade mode [in, out, inout], duration, and callback.
+--- Creates a new FadeRect
+---@param screenWidth any @ The width of the screen
+---@param screenHeight any @ The height of the screen
+---@param color any @ The color of the FadeRect
+---@param duration any @ The duration of the FadeRect
+---@param fadeMode any @ The fade mode of the FadeRect (in, out, inOut, outIn)
+---@param onFadeCompleteCallback any @ The callback function to be called when the FadeRect is complete
 function FadeRect.new(screenWidth, screenHeight, color, duration, fadeMode, onFadeCompleteCallback)
     local self = setmetatable({}, FadeRect)
     self.screenWidth = screenWidth
@@ -47,7 +53,8 @@ function FadeRect.new(screenWidth, screenHeight, color, duration, fadeMode, onFa
     return self
 end
 
--- Update function for the fade rect
+--- Updates the FadeRect
+---@param dt any @ The delta time
 function FadeRect:update(dt)
     if self.isComplete then return end -- If the fade is complete, don't update it
     if self.isFading then -- If the fade is in progress, update it

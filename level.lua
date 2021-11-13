@@ -20,8 +20,10 @@ local Camera = require "Camera"
 Level = {}
 Level.__index = Level
 
--- Loads a level from a file
-function Level.load(mapName)
+--- Creates a new level
+---@param mapName any @The name of the map to load
+---@param potNum any @The number of pots scored so far
+function Level.load(mapName, potNum)
     local self = setmetatable({}, Level)
     self.map = sti("assets/tilemaps/"..mapName, { "box2d" }) -- Load the map
 
@@ -31,13 +33,18 @@ function Level.load(mapName)
     self.world:setCallbacks(beginContact, endContact)
     self.map:box2d_init(self.world)
 
-    self.camera = Camera() -- Create a camera
-    self.score = 0 -- Initialise the score
+    -- Create a camera
+    self.camera = Camera() 
+
+    -- Initialise the score
+    self.score = potNum or 0
     local potImg = love.graphics.newImage('assets/textures/pot01.png')
     self.collectibles = {}
     for i, obj in pairs(self.map.layers["Collectibles"].objects) do
         table.insert(self.collectibles, Collectible.build(obj.x, obj.y, 0.5, 0.5, potImg, obj.name, 1, self.world))
     end
+
+    -- Initialise the Physics Objects
     self.physicsobjects = {}
     for i, obj in pairs(self.map.layers["PhysicsObjects"].objects) do
         if obj.name == "FloatingPlatform" then
@@ -46,6 +53,10 @@ function Level.load(mapName)
             table.insert(self.physicsobjects, PhysicsCube.new(obj.x, obj.y, 0.5, 0.5, love.graphics.newImage('assets/textures/LargeBlock.png'), self.world))
         end
     end
+    self.levelEndPos = self.map.layers["LevelEnd"].objects[1].x
+    self.levelFinished = false
+
+
     --Create background layers for parallax scrolling
     self.camera:newLayer(1, 0, function() 
         self.map:drawImageLayer("CaveSky1")
@@ -99,9 +110,6 @@ function Level.load(mapName)
         self.map:drawTileLayer("Foreground")
         end, true)
     
-    
-
-    
     --Create the Player
     Player:load(self.world, love.graphics.newImage('assets/textures/animations/player.png'))
     
@@ -114,8 +122,29 @@ function Level.load(mapName)
     return self
 end
 
--- Updates the level
+--- Updates the level
+---@param dt any The delta time
 function Level:update(dt)
+    if self.levelFinished then
+        return
+    end
+    if Player.physics.body:getX() > self.levelEndPos then
+        self.levelFinished = true
+        Faderect = FadeRect.new(800, 600, {0,0,0}, 1, "inOut", 
+            function()
+                self.bgm:stop()
+                if LevelIndex + 1 > #Levels then
+                    Gamestate = "mainmenu"
+                    CurrentLevel = nil
+                    LevelIndex = 1
+                else
+                    LevelIndex = LevelIndex + 1
+                    CurrentLevel = Level.load(Levels[LevelIndex], self.score)
+                end
+                
+                
+            end)
+    end
     self.world:update(dt)
     Player:update(dt)
     self.camera:setPosition(Utils:lerp(self.camera.x, Player.x - 200, dt), 0)
@@ -126,26 +155,29 @@ end
 
 -- Draws the level
 function Level:draw()
-    
-    
-
-    love.graphics.setCanvas(RenderTexture)
-    love.graphics.clear()
-    self.camera:draw("noFG")
-    love.graphics.setCanvas()
+    --Draw to the Canvas
+    love.graphics.setCanvas(RenderTexture)  --Set the Canvas to the RenderTexture
+    love.graphics.clear() -- Clear the Canvas
+    self.camera:draw("noFG") -- Draw the background layers
+    love.graphics.setCanvas() -- Disable drawing to canvas
+    love.graphics.setColor(1, 1, 1, 1) 
+    love.graphics.setShader(VignetteShader) -- Apply the vignette shader
+    self.camera:draw("noFG") -- Draw the background layers
+    love.graphics.setShader() -- Disable the shader
     love.graphics.setColor(1, 1, 1, 1)
-    self.camera:draw("noFG")
-    love.graphics.setColor(1, 1, 1, 1)
-    WaterShader:send("time", love.timer.getTime())
-    love.graphics.setShader(WaterShader)
-    love.graphics.draw(RenderTexture, 0, love.graphics.getHeight() + 90, 0, 1, -0.4, 0, 0)
-    love.graphics.setShader()
-    self.camera:draw("FGonly")
+    WaterShader:send("time", love.timer.getTime()) -- Send the time to the shader as uniform
+    love.graphics.setShader(WaterShader) -- Apply the water shader
+    love.graphics.draw(RenderTexture, 0, love.graphics.getHeight() + 90, 0, 1, -0.4, 0, 0) -- Draw the RenderTexture to the screen, flipped and scaled to look like water
+    love.graphics.setShader() -- Disable the shader
+    self.camera:draw("FGonly") -- Draw the foreground layers
     love.graphics.setColor(1, 0.7, 0.0, 1)
-    love.graphics.print("Magic Pots; "..self.score, 10, 550)
+    love.graphics.print("Magic Pots; "..self.score, 10, 550) -- Print the score
 end
 
--- Handles the collision between the player and the level
+--- Collision callback for the level
+---@param a any The first object
+---@param b any The second object
+---@param collision any The collision data
 function Level:beginContact(a, b, collision)
     Player:beginContact(a, b, collision)
 
@@ -160,6 +192,9 @@ function Level:beginContact(a, b, collision)
 end
 
 -- Handles the collision between the player and the level
+---@param a any The first object
+---@param b any The second object
+---@param collision any The collision data
 function Level:endContact(a, b, collision)
     Player:endContact(a, b, collision)
 end
