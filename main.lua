@@ -46,14 +46,14 @@ WaterShader = love.graphics.newShader[[
         for(float j=1.0/Quality; j<=1.0; j+=1.0/Quality)
         {
 			
-            col += Texel( texture, (texture_coords + vec2(0.0, cos((screen_coords.y/2.0) + time) * 0.08) + (vec2(cos(i),sin(i))*(Radius* d)*j))).rgb;
+            col += Texel( texture, (texture_coords + vec2(cos((screen_coords.y/3.0) - time) * 0.01, cos((screen_coords.y/3.0) - time) * 0.04) + (vec2(cos(i),sin(i))*(Radius* d)*j))).rgb;
             
         }
     }
 
     col /= Quality * Directions - 15.0;
 
-    vec4 pixel = vec4(col * (1.0+(cos((screen_coords.y/2.0) + time))/6), 0.7);
+    vec4 pixel = vec4(col * (1.0+(cos((screen_coords.y/3.0) + time))/10), 0.7);
     
     return pixel;
   }
